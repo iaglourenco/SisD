@@ -10,15 +10,19 @@ shr_variable = ''
 
 
 #Structure with all adresses of the servers
-server_list = {}
-
-#  server = {server1: (ip,port),server2:(ip,port),server3: (ip,port),server4: (ip,port)}
-
+#  server = {counter:<amount of servers> ,server1: (ip,port),server2:(ip,port),server3: (ip,port),server4: (ip,port)}
+server_list = {'counter':0}
 
 
+def add_server(address):
+    c = server_list.get('counter')
+    server_list['server'+str(c)] = address
+    server_list['counter']+=1
 
 
-mutex = Lock()
+
+
+# mutex = Lock()
 event = Event()
 
 def send(s:socket,data):
@@ -41,49 +45,62 @@ def receive(s: socket):
 
 
 
-def server_thread():
+def server_thread(port):
     #Communicate with other server for sincronization.
     #global shr_variable
     global event
-    print('Thread do servidor rodando')
+    print('Server Thread running')
 
+
+    #Register the current address to the server list
+    address = (socket.gethostname(),port)
+    add_server(address)
+    
 
     while True:
-        if event.is_set():
-            #Send to all servers the new variable
-            print("Entrou no evento")
-            print(shr_variable)
+        try:
+            if event.is_set():                
+                print("Echo server_thread-> \"{}\"".format(shr_variable))
+                
+                #Send to all servers the new variable
 
-            event.clear()
+
+                event.clear()
+        except KeyboardInterrupt:
+            return
 
 
-    return
-
-def client_thread(ns):
+def client_thread(ns,address):
     global shr_variable
     global event
+
+    print('Connection from',address)
     while True:
         bytes_received = ns.recv(5)
         command = bytes_received.decode()
+        if not bytes_received:
+            return
 
-        print('Command ->',command)
+        print('Command ->',"\""+command+"\"",'from',address)
         if command == 'readd':
-            send(ns,(shr_variable+chr(0)).encode())
+            try:
+                send(ns,(shr_variable+chr(0)).encode())
+            except IOError:
+                print('Failed to send data to',address)
 
         elif command == 'write':
 
             ret = receive(ns)
             if ret:
                 shr_variable = ret
-                print('Mensagem recebida',ret)
+                print('Received data',"\""+ret+"\"",'from',address)
                 event.set()
             else:
-                print('Falha ao receber a mensagem')
+                print('Failed to receive data from',address)
 
         elif command == 'quit':
+            print('Connection closed',address)
             return
-
-server_t = Thread(target=server_thread)
 
 
 def main(port):
@@ -92,16 +109,16 @@ def main(port):
     s.bind(('',port))
     s.listen(5)
     print('Listening on',port)
-    server_t.start()
+    Thread(target=server_thread,args=(port,)).start()
+
 
     while True:
-        try:
             ns,address = s.accept()
-            print('Connection from',address)
-            Thread(target=client_thread,args=(ns,)).start()
-        except KeyboardInterrupt:
-            exit()
+            Thread(target=client_thread,args=(ns,address,)).start()
+        
     
 if __name__ == '__main__':
-    main(int(sys.argv[1]))
-
+    try:
+        main(int(sys.argv[1]))
+    except KeyboardInterrupt:
+        exit()

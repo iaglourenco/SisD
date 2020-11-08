@@ -6,31 +6,49 @@ s.connect(('localhost',int(sys.argv[1])))
 
 
 
-s.sendall('readd'.encode())
 
-res=''
-while True:
-    bytes_read = s.recv(1)
-    if ord(bytes_read) == 0: 
-        break
-    res += bytes_read.decode()
+def receive(s: socket):
+    s.sendall('readd'.encode())
+    
 
-print(res)
+    res=''
+    while True:
+        bytes_read = s.recv(1)
+        if ord(bytes_read) == 0: 
+            break
+        res += bytes_read.decode()
+    return res
 
-exit()
 
 while True:
     try:
-        data = input()
+        print("1 - Write new data\n2 - Read current data\n3 - Close connection\n>",end='\0')
+        option = input()
 
-        s.sendall( (data + chr(0)).encode() ) 
+        if option == '1':
+            s.sendall('write'.encode())
+            print('Data>',end='\0')
+            data = input()
+            s.sendall( (data + chr(0) ).encode() ) 
+
+        elif option == '2':
+            ret = receive(s)
+            print("Message received:",ret)
+        
+        elif option == '3':
+            s.sendall('quit'.encode())
+            s.close()
+            raise KeyboardInterrupt
+        else:
+            print("Invalid option")
+
 
 
     except KeyboardInterrupt:
+        print("Finished")
         break
 
 
-# s.send('readd'.encode())
 
 
 
