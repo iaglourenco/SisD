@@ -5,16 +5,17 @@
 # Valor do Projeto: 7 pontos
 
 
-import socket
 import json
+import socket
+
 
 def receive(s: socket):
-    s.sendall('readd'.encode())
-    
-    res=''
+    s.sendall("readd".encode())
+
+    res = ""
     while True:
         bytes_read = s.recv(1)
-        if ord(bytes_read) == 0: 
+        if ord(bytes_read) == 0:
             break
         res += bytes_read.decode()
     return res
@@ -22,34 +23,39 @@ def receive(s: socket):
 
 print("What is the address of the DNS? <ip:port>")
 dns_input = input()
-dns_ip,dns_port = dns_input.split(':')
+dns_ip, dns_port = dns_input.split(":")
+if len(str(dns_port)) != 5:
+    print("Invalid DNS port size, port is 5 digits")
+    exit(-1)
 try:
     dns_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     dns_socket.connect((dns_ip, int(dns_port)))
-    dns_socket.sendall('getsr'.encode())
+    dns_socket.sendall("getsr".encode())
     add = dns_socket.recv(1024)
     d = json.loads(add)
-    server_ip = d.get('ip')
-    server_port = d.get('port')
-    dns_socket.sendall('close'.encode())
-    dns_socket.sendall(('0000'+chr(0)).encode())
+    server_ip = d.get("ip")
+    server_port = d.get("port")
+    dns_socket.sendall("close".encode())
+    dns_socket.sendall(("0000" + chr(0)).encode())
     dns_socket.close()
 except socket.error:
     while True:
         try:
-            print('Houston, we have a problem...')
-            print('This DNS server does not respond, type another address or Ctrl+C to finish.')
+            print("Houston, we have a problem...")
+            print(
+                "This DNS server does not respond, type another address or Ctrl+C to finish."
+            )
             dns_input = input()
-            dns_ip,dns_port = dns_input.split(':')
+            dns_ip, dns_port = dns_input.split(":")
             dns_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             dns_socket.connect((dns_ip, int(dns_port)))
-            dns_socket.sendall('getsr'.encode())
+            dns_socket.sendall("getsr".encode())
             add = dns_socket.recv(1024)
             d = json.loads(add)
-            server_ip = d.get('ip')
-            server_port = d.get('port')
-            dns_socket.sendall('close'.encode())
-            dns_socket.sendall(('0000'+chr(0)).encode())
+            server_ip = d.get("ip")
+            server_port = d.get("port")
+            dns_socket.sendall("close".encode())
+            dns_socket.sendall(("0000" + chr(0)).encode())
             dns_socket.close()
             break
         except socket.error:
@@ -59,42 +65,35 @@ except socket.error:
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-s.connect((server_ip,server_port))
-print('Connected to ' + server_ip + ':' + str(server_port))
-s.sendall('cliack'.encode())
+s.connect((server_ip, server_port))
+print("Connected to " + server_ip + ":" + str(server_port))
+s.sendall("cliack".encode())
 
 while True:
     try:
-        print("1 - Write new data\n2 - Read current data\n3 - Close connection\n>",end='\0')
+        print(
+            "1 - Write new data\n2 - Read current data\n3 - Close connection\n>",
+            end="\0",
+        )
         option = input()
 
-        if option == '1':
-            s.sendall('write'.encode())
-            print('Data>',end='\0')
+        if option == "1":
+            s.sendall("write".encode())
+            print("Data>", end="\0")
             data = input()
-            s.sendall( (data + chr(0) ).encode() ) 
+            s.sendall((data + chr(0)).encode())
 
-        elif option == '2':
+        elif option == "2":
             ret = receive(s)
-            print("Message received:",ret)
-        
-        elif option == '3':
-            s.sendall('quit'.encode())
+            print("Message received:", ret)
+
+        elif option == "3":
+            s.sendall("quit".encode())
             s.close()
             raise KeyboardInterrupt
         else:
             print("Invalid option")
 
-
-
     except KeyboardInterrupt:
         print("Finished")
         break
-
-
-
-
-
-
-
-
